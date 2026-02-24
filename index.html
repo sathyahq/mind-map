@@ -2,103 +2,97 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>MindMap</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #0f0f1a;
-  overflow: hidden;
-  color: #fff;
+  background: #111;
+  color: #ddd;
 }
 
-/* Toolbar */
 #bar {
-  position: fixed; top: 0; left: 0; right: 0; height: 44px;
-  background: #1a1a2e; border-bottom: 1px solid #2a2a4a;
-  display: flex; align-items: center; padding: 0 12px; gap: 6px; z-index: 100;
+  position: fixed; top: 0; left: 0; right: 0; height: 40px;
+  background: #1a1a1a; border-bottom: 1px solid #333;
+  display: flex; align-items: center; padding: 0 10px; gap: 6px; z-index: 100;
 }
-#bar .title { font-weight: 700; font-size: 16px; color: #ff6b8a; margin-right: 12px; }
+#bar .title { font-weight: 700; font-size: 15px; color: #888; margin-right: 10px; }
 .tb {
-  background: #2a2a4a; border: none; color: #ccc; padding: 5px 12px;
-  border-radius: 6px; cursor: pointer; font-size: 12px;
+  background: #252525; border: 1px solid #333; color: #aaa; padding: 4px 10px;
+  border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap;
 }
-.tb:hover { background: #3a3a5a; color: #fff; }
-.tb.red { color: #ff6b8a; }
-.tb.red:hover { background: #ff6b8a; color: #fff; }
+.tb:hover { background: #333; color: #fff; }
+.tb.warn { color: #e55; }
+.tb.warn:hover { background: #e55; color: #fff; }
 .spacer { flex: 1; }
-.dot {
-  width: 18px; height: 18px; border-radius: 50%; cursor: pointer;
-  border: 2px solid transparent; transition: border-color 0.15s;
-}
-.dot.on { border-color: #fff; }
-.sep { width: 1px; height: 20px; background: #2a2a4a; margin: 0 4px; }
 
-/* Canvas area */
 #world {
-  position: fixed; top: 44px; left: 0; right: 0; bottom: 0;
-  cursor: grab; outline: none;
+  position: fixed; top: 40px; left: 0; right: 0; bottom: 0;
+  outline: none; cursor: grab; touch-action: none;
 }
-#world.dragging { cursor: grabbing; }
+#world.panning { cursor: grabbing; }
 
-/* Line canvas */
-#lines {
-  position: absolute; top: 0; left: 0; pointer-events: none;
-}
-
-/* Nodes layer */
-#nodes {
-  position: absolute; top: 0; left: 0; transform-origin: 0 0;
+svg {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; overflow: visible;
 }
 
-/* Node */
-.n {
-  position: absolute; padding: 8px 16px; border-radius: 10px;
-  font-size: 13px; font-weight: 500; text-align: center;
-  cursor: pointer; white-space: nowrap; min-width: 80px;
-  transition: box-shadow 0.1s;
-  user-select: none;
-}
-.n:hover { filter: brightness(1.15); }
-.n.sel { box-shadow: 0 0 0 2.5px #fff; }
-.n.root { font-size: 16px; font-weight: 700; padding: 10px 22px; border-radius: 14px; }
-
-/* + button on hover */
-.n .plus {
-  position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
-  width: 20px; height: 20px; border-radius: 50%;
-  background: #ff6b8a; color: #fff; border: 2px solid #0f0f1a;
-  font-size: 14px; line-height: 14px; cursor: pointer;
-  display: none; align-items: center; justify-content: center;
-}
-.n:hover .plus { display: flex; }
-
-/* Edit input */
-.n input {
-  background: transparent; border: none; color: inherit; font: inherit;
-  text-align: center; outline: none; width: 100%; min-width: 60px;
+.link {
+  fill: none; stroke: #333; stroke-width: 2;
 }
 
-/* Zoom label */
-#zlbl {
-  position: fixed; bottom: 10px; right: 12px;
-  font-size: 11px; color: #555; z-index: 50;
+.node {
+  cursor: pointer; user-select: none;
+}
+.node rect {
+  fill: #1a1a1a; stroke: #333; stroke-width: 1.5; rx: 8;
+}
+.node.selected rect {
+  stroke: #aaa; stroke-width: 2;
+}
+.node.root rect {
+  fill: #222; stroke: #555;
+}
+.node text {
+  fill: #ccc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px; dominant-baseline: central; text-anchor: middle;
+  pointer-events: none;
+}
+.node.root text {
+  font-size: 15px; font-weight: 600; fill: #eee;
 }
 
-/* Toast */
+.add-btn {
+  cursor: pointer; opacity: 0; transition: opacity 0.15s;
+}
+.node:hover .add-btn { opacity: 1; }
+.add-btn circle { fill: #333; }
+.add-btn text { fill: #aaa; font-size: 14px; font-weight: 700; }
+.add-btn:hover circle { fill: #555; }
+
+/* Edit overlay */
+#edit-overlay {
+  display: none; position: fixed; z-index: 200;
+}
+#edit-overlay input {
+  background: #1a1a1a; border: 2px solid #555; color: #eee; padding: 6px 12px;
+  border-radius: 8px; font-size: 13px; font-family: inherit; outline: none;
+  min-width: 120px; text-align: center;
+}
+#edit-overlay input:focus { border-color: #888; }
+
 #toast {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px);
-  background: #1a1a2e; border: 1px solid #2a2a4a;
-  padding: 8px 20px; border-radius: 8px; font-size: 12px; color: #aaa;
-  transition: transform 0.25s; z-index: 150;
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%) translateY(50px);
+  background: #222; border: 1px solid #333; padding: 6px 16px; border-radius: 6px;
+  font-size: 11px; color: #888; transition: transform 0.2s; z-index: 150;
 }
 #toast.on { transform: translateX(-50%) translateY(0); }
 
-/* Hint on first load */
 #hint {
-  position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
-  font-size: 12px; color: #444; z-index: 50; text-align: center;
+  position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; color: #444; z-index: 50; white-space: nowrap;
 }
 </style>
 </head>
@@ -106,340 +100,468 @@ body {
 
 <div id="bar">
   <span class="title">MindMap</span>
-  <button class="tb" onclick="addChild()">+ Child</button>
-  <button class="tb" onclick="addSibling()">+ Sibling</button>
-  <button class="tb red" onclick="delNode()">Delete</button>
-  <div class="sep"></div>
-  <div class="dot on" style="background:#ff6b8a" onclick="pickColor('#ff6b8a',this)"></div>
-  <div class="dot" style="background:#4a9eff" onclick="pickColor('#4a9eff',this)"></div>
-  <div class="dot" style="background:#a855f7" onclick="pickColor('#a855f7',this)"></div>
-  <div class="dot" style="background:#22c55e" onclick="pickColor('#22c55e',this)"></div>
-  <div class="dot" style="background:#f59e0b" onclick="pickColor('#f59e0b',this)"></div>
-  <div class="sep"></div>
-  <button class="tb" onclick="fitView()">Fit</button>
-  <button class="tb" onclick="saveFile()">Save</button>
-  <button class="tb" onclick="document.getElementById('lf').click()">Load</button>
-  <input type="file" id="lf" accept=".json" style="display:none" onchange="loadFile(event)">
-  <button class="tb" onclick="newMap()">New</button>
+  <button class="tb" onclick="doAddChild()">+ Add</button>
+  <button class="tb warn" onclick="doDelete()">Delete</button>
+  <span class="sep"></span>
+  <button class="tb" onclick="doUndo()">Undo</button>
+  <button class="tb" onclick="doRedo()">Redo</button>
   <div class="spacer"></div>
-  <button class="tb" onclick="showHelp()">?</button>
+  <button class="tb" onclick="doSave()">Save</button>
+  <button class="tb" onclick="document.getElementById('lf').click()">Load</button>
+  <input type="file" id="lf" accept=".json" style="display:none" onchange="doLoad(event)">
+  <button class="tb" onclick="doNew()">New</button>
 </div>
 
 <div id="world" tabindex="0">
-  <canvas id="lines"></canvas>
-  <div id="nodes"></div>
+  <svg id="svg">
+    <g id="viewport">
+      <g id="links"></g>
+      <g id="nodes-g"></g>
+    </g>
+  </svg>
 </div>
 
-<div id="zlbl">100%</div>
+<div id="edit-overlay"><input id="edit-input"></div>
 <div id="toast"></div>
-<div id="hint">Click a node, then press <b>Tab</b> to add children &middot; <b>Enter</b> for siblings &middot; Double-click to edit</div>
+<div id="hint">Tab = add child &middot; Enter = sibling &middot; Double-click = edit &middot; Delete = remove</div>
 
 <script>
-// State
-let N = []; // nodes: {id, text, x, y, pid, color, root}
-let nid = 1, sel = null, color = '#ff6b8a';
-let undo = [], redo_ = [];
+// ---- Data ----
+let tree = null; // { id, text, children: [...], collapsed }
+let nextId = 1;
+let sel = null; // selected id
+let undoStack = [], redoStack = [];
 
-// Pan/zoom
-let px = 0, py = 0, zm = 1;
+// ---- Layout constants ----
+const NODE_H = 32;
+const NODE_PAD_X = 20;
+const NODE_PAD_Y = 6;
+const H_GAP = 40;  // horizontal gap between parent and children
+const V_GAP = 8;   // vertical gap between siblings
+const ROOT_EXTRA = 8;
+
+// ---- Pan/Zoom ----
+let vx = 0, vy = 0, vz = 1;
 let panning = false, psx, psy;
-let dragging = false, did = null, dox, doy;
-let editing = false;
-
 const world = document.getElementById('world');
-const nodesEl = document.getElementById('nodes');
-const lineCanvas = document.getElementById('lines');
-const ctx = lineCanvas.getContext('2d');
+const svg = document.getElementById('svg');
+const viewport = document.getElementById('viewport');
+const linksG = document.getElementById('links');
+const nodesG = document.getElementById('nodes-g');
+
+// ---- Measure text ----
+let measureCtx;
+function textWidth(text, fontSize, bold) {
+  if (!measureCtx) {
+    const c = document.createElement('canvas');
+    measureCtx = c.getContext('2d');
+  }
+  measureCtx.font = (bold ? '600 ' : '') + fontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  return measureCtx.measureText(text).width;
+}
 
 // ---- Init ----
 function init() {
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
-
-  const s = localStorage.getItem('mm');
-  if (s) {
+  const saved = localStorage.getItem('mindmap2');
+  if (saved) {
     try {
-      const d = JSON.parse(s);
-      N = d.N || []; nid = d.nid || 1;
-      if (N.length) { save(); draw(); fitView(); return; }
+      const d = JSON.parse(saved);
+      tree = d.tree; nextId = d.nextId;
+      if (tree) { sel = tree.id; pushUndo(); render(); fitView(); return; }
     } catch(e) {}
   }
-  fresh();
+  freshMap();
 }
 
-function fresh() {
-  N = []; nid = 1; sel = null;
-  const cx = 2000, cy = 2000;
-  N.push({ id: nid++, text: 'My Ideas', x: cx, y: cy, pid: null, color: '#ff6b8a', root: true });
-  sel = 1;
-  save(); draw(); fitView();
+function freshMap() {
+  nextId = 1;
+  tree = { id: nextId++, text: 'Central Idea', children: [] };
+  sel = tree.id;
+  pushUndo(); render(); fitView();
 }
 
-function resizeCanvas() {
-  lineCanvas.width = world.offsetWidth;
-  lineCanvas.height = world.offsetHeight;
-  drawLines();
-}
-
-// ---- Save/Undo ----
-function save() {
-  undo.push(JSON.stringify({ N, nid }));
-  if (undo.length > 40) undo.shift();
-  redo_ = [];
-  localStorage.setItem('mm', JSON.stringify({ N, nid }));
+// ---- Undo/Redo ----
+function pushUndo() {
+  undoStack.push(JSON.stringify({ tree, nextId }));
+  if (undoStack.length > 50) undoStack.shift();
+  redoStack = [];
+  localStorage.setItem('mindmap2', JSON.stringify({ tree, nextId }));
 }
 
 function doUndo() {
-  if (undo.length < 2) return;
-  redo_.push(undo.pop());
-  const d = JSON.parse(undo[undo.length - 1]);
-  N = d.N; nid = d.nid; sel = null; draw(); toast('Undo');
+  if (undoStack.length < 2) return;
+  redoStack.push(undoStack.pop());
+  restore(undoStack[undoStack.length - 1]);
+  toast('Undo');
 }
 
 function doRedo() {
-  if (!redo_.length) return;
-  const d = JSON.parse(redo_.pop());
-  undo.push(JSON.stringify(d));
-  N = d.N; nid = d.nid; sel = null; draw(); toast('Redo');
+  if (!redoStack.length) return;
+  const s = redoStack.pop();
+  undoStack.push(s);
+  restore(s);
+  toast('Redo');
 }
 
-// ---- Draw ----
-function draw() {
-  // Clear DOM nodes
-  nodesEl.innerHTML = '';
-
-  N.forEach(n => {
-    const d = document.createElement('div');
-    d.className = 'n' + (n.root ? ' root' : '') + (n.id === sel ? ' sel' : '');
-    d.dataset.id = n.id;
-    d.style.left = n.x + 'px';
-    d.style.top = n.y + 'px';
-    d.style.background = n.color;
-    d.style.color = isLight(n.color) ? '#1a1a2e' : '#fff';
-    d.textContent = n.text;
-
-    // Plus button
-    const p = document.createElement('button');
-    p.className = 'plus';
-    p.textContent = '+';
-    p.onmousedown = (e) => { e.stopPropagation(); sel = n.id; addChild(); };
-    d.appendChild(p);
-
-    d.onmousedown = (e) => nodeDown(e, n.id);
-    d.ondblclick = (e) => { e.stopPropagation(); editNode(n.id); };
-
-    nodesEl.appendChild(d);
-  });
-
-  updateTransform();
-  drawLines();
+function restore(s) {
+  const d = JSON.parse(s);
+  tree = d.tree; nextId = d.nextId;
+  sel = findNode(tree, sel) ? sel : tree.id;
+  render();
 }
 
-function drawLines() {
-  ctx.clearRect(0, 0, lineCanvas.width, lineCanvas.height);
-  ctx.lineCap = 'round';
-
-  N.forEach(n => {
-    if (!n.pid) return;
-    const p = N.find(x => x.id === n.pid);
-    if (!p) return;
-
-    const pe = nodesEl.querySelector(`[data-id="${p.id}"]`);
-    const ce = nodesEl.querySelector(`[data-id="${n.id}"]`);
-    if (!pe || !ce) return;
-
-    // Get positions in screen space
-    const x1 = (p.x + pe.offsetWidth / 2) * zm + px;
-    const y1 = (p.y + pe.offsetHeight / 2) * zm + py;
-    const x2 = (n.x + ce.offsetWidth / 2) * zm + px;
-    const y2 = (n.y + ce.offsetHeight / 2) * zm + py;
-
-    const mx = (x1 + x2) / 2;
-
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.bezierCurveTo(mx, y1, mx, y2, x2, y2);
-    ctx.strokeStyle = p.color;
-    ctx.globalAlpha = 0.45;
-    ctx.lineWidth = 2.5 * zm;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  });
-}
-
-function updateTransform() {
-  nodesEl.style.transform = `translate(${px}px, ${py}px) scale(${zm})`;
-}
-
-// ---- Pan & Zoom ----
-world.addEventListener('mousedown', (e) => {
-  if (e.target === world || e.target === lineCanvas) {
-    panning = true;
-    psx = e.clientX - px;
-    psy = e.clientY - py;
-    world.classList.add('dragging');
-    sel = null;
-    draw();
-    world.focus();
+// ---- Tree helpers ----
+function findNode(node, id) {
+  if (!node) return null;
+  if (node.id === id) return node;
+  for (const c of node.children) {
+    const f = findNode(c, id);
+    if (f) return f;
   }
-});
+  return null;
+}
 
-window.addEventListener('mousemove', (e) => {
-  if (panning) {
-    px = e.clientX - psx;
-    py = e.clientY - psy;
-    updateTransform();
-    drawLines();
+function findParent(node, id, parent) {
+  if (node.id === id) return parent;
+  for (const c of node.children) {
+    const f = findParent(c, id, node);
+    if (f) return f;
   }
-  if (dragging && did) {
-    const n = N.find(x => x.id === did);
-    if (n) {
-      n.x = (e.clientX - px) / zm - dox;
-      n.y = (e.clientY - 44 - py) / zm - doy;
-      const el = nodesEl.querySelector(`[data-id="${did}"]`);
-      if (el) { el.style.left = n.x + 'px'; el.style.top = n.y + 'px'; }
-      drawLines();
+  return null;
+}
+
+function removeNode(root, id) {
+  root.children = root.children.filter(c => c.id !== id);
+  for (const c of root.children) removeNode(c, id);
+}
+
+// ---- Layout (Reingold-Tilford-ish) ----
+// Each node gets: _w, _h (own size), _tw, _th (subtree size), _x, _y (position)
+function layout() {
+  if (!tree) return;
+  measure(tree, true);
+  position(tree, 0, 0, true);
+}
+
+function measure(node, isRoot) {
+  const fontSize = isRoot ? 15 : 13;
+  const bold = isRoot;
+  const tw = textWidth(node.text, fontSize, bold);
+  node._w = tw + NODE_PAD_X * 2 + (isRoot ? ROOT_EXTRA * 2 : 0);
+  node._h = NODE_H + (isRoot ? ROOT_EXTRA : 0);
+
+  if (node.children.length === 0) {
+    node._th = node._h;
+  } else {
+    let totalH = 0;
+    for (let i = 0; i < node.children.length; i++) {
+      measure(node.children[i], false);
+      totalH += node.children[i]._th;
+      if (i > 0) totalH += V_GAP;
+    }
+    node._th = Math.max(node._h, totalH);
+  }
+}
+
+function position(node, x, y, isRoot) {
+  node._x = x;
+  node._y = y + (node._th - node._h) / 2;
+
+  if (node.children.length > 0) {
+    const childX = x + node._w + H_GAP;
+    let childY = y;
+    // Center children relative to parent if subtree is smaller
+    const childrenTotalH = node.children.reduce((s, c, i) => s + c._th + (i > 0 ? V_GAP : 0), 0);
+    if (childrenTotalH < node._th) {
+      childY = y + (node._th - childrenTotalH) / 2;
+    }
+    for (const c of node.children) {
+      position(c, childX, childY, false);
+      childY += c._th + V_GAP;
     }
   }
-});
+}
 
-window.addEventListener('mouseup', () => {
-  if (panning) { panning = false; world.classList.remove('dragging'); }
-  if (dragging) { dragging = false; did = null; save(); }
-});
+// ---- Render ----
+function render() {
+  layout();
+  linksG.innerHTML = '';
+  nodesG.innerHTML = '';
+  if (!tree) return;
+  drawNode(tree, null, true);
+}
 
-world.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  const d = e.deltaY > 0 ? 0.9 : 1.1;
-  const nz = Math.max(0.2, Math.min(3, zm * d));
-  const r = world.getBoundingClientRect();
-  const mx = e.clientX - r.left, my = e.clientY - r.top;
-  px = mx - (mx - px) * (nz / zm);
-  py = my - (my - py) * (nz / zm);
-  zm = nz;
-  updateTransform();
-  drawLines();
-  document.getElementById('zlbl').textContent = Math.round(zm * 100) + '%';
-}, { passive: false });
+function drawNode(node, parent, isRoot) {
+  // Draw link from parent
+  if (parent) {
+    const x1 = parent._x + parent._w;
+    const y1 = parent._y + parent._h / 2;
+    const x2 = node._x;
+    const y2 = node._y + node._h / 2;
+    const mx = (x1 + x2) / 2;
 
-function nodeDown(e, id) {
-  e.stopPropagation();
-  sel = id;
-  draw();
-  world.focus();
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+    path.setAttribute('class', 'link');
+    linksG.appendChild(path);
+  }
 
-  const n = N.find(x => x.id === id);
-  if (n) {
-    dragging = true; did = id;
-    dox = (e.clientX - px) / zm - n.x;
-    doy = (e.clientY - 44 - py) / zm - n.y;
+  // Draw node group
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.setAttribute('class', 'node' + (isRoot ? ' root' : '') + (node.id === sel ? ' selected' : ''));
+  g.setAttribute('data-id', node.id);
+
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', node._x);
+  rect.setAttribute('y', node._y);
+  rect.setAttribute('width', node._w);
+  rect.setAttribute('height', node._h);
+  g.appendChild(rect);
+
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  text.setAttribute('x', node._x + node._w / 2);
+  text.setAttribute('y', node._y + node._h / 2);
+  text.textContent = node.text;
+  g.appendChild(text);
+
+  // Add child (+) button
+  const btn = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  btn.setAttribute('class', 'add-btn');
+  const bc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  bc.setAttribute('cx', node._x + node._w + 12);
+  bc.setAttribute('cy', node._y + node._h / 2);
+  bc.setAttribute('r', 9);
+  btn.appendChild(bc);
+  const bt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  bt.setAttribute('x', node._x + node._w + 12);
+  bt.setAttribute('y', node._y + node._h / 2);
+  bt.setAttribute('text-anchor', 'middle');
+  bt.setAttribute('dominant-baseline', 'central');
+  bt.textContent = '+';
+  btn.appendChild(bt);
+  btn.addEventListener('mousedown', (e) => { e.stopPropagation(); sel = node.id; doAddChild(); });
+  btn.addEventListener('touchstart', (e) => { e.stopPropagation(); e.preventDefault(); sel = node.id; doAddChild(); });
+  g.appendChild(btn);
+
+  // Events
+  g.addEventListener('mousedown', (e) => { e.stopPropagation(); selectNode(node.id); });
+  g.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { e.stopPropagation(); selectNode(node.id); }});
+  g.addEventListener('dblclick', (e) => { e.stopPropagation(); editNode(node.id); });
+
+  nodesG.appendChild(g);
+
+  // Draw children
+  for (const c of node.children) {
+    drawNode(c, node, false);
   }
 }
 
-// ---- Add / Delete ----
-function addChild() {
-  const p = N.find(x => x.id === sel);
-  if (!p) { toast('Select a node first'); return; }
+// ---- Select ----
+function selectNode(id) {
+  sel = id;
+  render();
+  world.focus();
+}
 
-  const kids = N.filter(x => x.pid === p.id);
-  const el = nodesEl.querySelector(`[data-id="${p.id}"]`);
-  const pw = el ? el.offsetWidth : 120;
+// ---- Add/Delete ----
+function doAddChild() {
+  const p = findNode(tree, sel);
+  if (!p) { toast('Select a node'); return; }
 
-  const child = {
-    id: nid++, text: 'New idea',
-    x: p.x + pw + 60,
-    y: p.y + kids.length * 60 - kids.length * 25,
-    pid: p.id, color: p.color, root: false
-  };
-  N.push(child);
+  const child = { id: nextId++, text: 'New idea', children: [] };
+  p.children.push(child);
   sel = child.id;
-  save(); draw();
-  setTimeout(() => editNode(child.id), 30);
+  pushUndo(); render(); scrollToNode(child.id);
+  setTimeout(() => editNode(child.id), 50);
   hideHint();
 }
 
-function addSibling() {
-  const c = N.find(x => x.id === sel);
-  if (!c || !c.pid) { toast('Select a non-root node'); return; }
+function doAddSibling() {
+  if (!sel || sel === tree.id) { toast('Select a non-root node'); return; }
+  const parent = findParent(tree, sel, null);
+  if (!parent) return;
 
-  const sib = {
-    id: nid++, text: 'New idea',
-    x: c.x, y: c.y + 60,
-    pid: c.pid, color: c.color, root: false
-  };
-  N.push(sib);
+  const idx = parent.children.findIndex(c => c.id === sel);
+  const sib = { id: nextId++, text: 'New idea', children: [] };
+  parent.children.splice(idx + 1, 0, sib);
   sel = sib.id;
-  save(); draw();
-  setTimeout(() => editNode(sib.id), 30);
+  pushUndo(); render(); scrollToNode(sib.id);
+  setTimeout(() => editNode(sib.id), 50);
 }
 
-function delNode() {
-  const n = N.find(x => x.id === sel);
-  if (!n) return;
-  if (n.root) { toast("Can't delete root"); return; }
-
-  const del = new Set();
-  function collect(id) { del.add(id); N.filter(x => x.pid === id).forEach(c => collect(c.id)); }
-  collect(n.id);
-  sel = n.pid;
-  N = N.filter(x => !del.has(x.id));
-  save(); draw();
+function doDelete() {
+  if (!sel || sel === tree.id) { toast("Can't delete root"); return; }
+  const parent = findParent(tree, sel, null);
+  if (!parent) return;
+  removeNode(tree, sel);
+  sel = parent.id;
+  pushUndo(); render();
 }
 
 // ---- Edit ----
 function editNode(id) {
-  const n = N.find(x => x.id === id);
-  if (!n) return;
-  const el = nodesEl.querySelector(`[data-id="${id}"]`);
-  if (!el) return;
+  const node = findNode(tree, id);
+  if (!node) return;
 
-  editing = true;
-  const inp = document.createElement('input');
-  inp.value = n.text;
-  inp.style.color = el.style.color;
-  el.textContent = '';
-  el.appendChild(inp);
-  inp.focus();
-  inp.select();
+  const overlay = document.getElementById('edit-overlay');
+  const input = document.getElementById('edit-input');
+
+  // Position input over the node in screen space
+  const sx = node._x * vz + vx;
+  const sy = node._y * vz + vy + 40; // +40 for toolbar
+  const sw = node._w * vz;
+  const sh = node._h * vz;
+
+  overlay.style.display = 'block';
+  overlay.style.left = sx + 'px';
+  overlay.style.top = sy + 'px';
+  overlay.style.width = Math.max(sw, 140) + 'px';
+  overlay.style.height = sh + 'px';
+  input.style.width = '100%';
+  input.style.height = '100%';
+  input.style.fontSize = (node.id === tree.id ? 15 : 13) * vz + 'px';
+  input.value = node.text;
+  input.focus();
+  input.select();
 
   const done = () => {
-    editing = false;
-    n.text = inp.value.trim() || n.text;
-    save(); draw();
+    overlay.style.display = 'none';
+    const t = input.value.trim();
+    if (t && t !== node.text) {
+      node.text = t;
+      pushUndo();
+    }
+    render();
     world.focus();
+    input.removeEventListener('blur', done);
   };
 
-  inp.addEventListener('blur', done);
-  inp.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
-    if (e.key === 'Escape') { inp.value = n.text; inp.blur(); }
+  input.addEventListener('blur', done);
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.value = node.text; input.blur(); }
+    if (e.key === 'Tab') { e.preventDefault(); input.blur(); setTimeout(doAddChild, 30); }
     e.stopPropagation();
+  };
+}
+
+// ---- Pan & Zoom ----
+world.addEventListener('mousedown', (e) => {
+  if (e.target === world || e.target === svg || e.target.tagName === 'svg') {
+    panning = true; psx = e.clientX - vx; psy = e.clientY - vy;
+    world.classList.add('panning');
+    sel = null; render();
+  }
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!panning) return;
+  vx = e.clientX - psx; vy = e.clientY - psy;
+  applyView();
+});
+
+window.addEventListener('mouseup', () => {
+  if (panning) { panning = false; world.classList.remove('panning'); }
+});
+
+// Touch support
+let lastTouchDist = 0;
+world.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    panning = true;
+    psx = e.touches[0].clientX - vx;
+    psy = e.touches[0].clientY - vy;
+  } else if (e.touches.length === 2) {
+    panning = false;
+    lastTouchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+}, { passive: false });
+
+world.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1 && panning) {
+    vx = e.touches[0].clientX - psx;
+    vy = e.touches[0].clientY - psy;
+    applyView();
+  } else if (e.touches.length === 2) {
+    const dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const scale = dist / lastTouchDist;
+    const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - 40;
+    const nz = Math.max(0.3, Math.min(3, vz * scale));
+    vx = cx - (cx - vx) * (nz / vz);
+    vy = cy - (cy - vy) * (nz / vz);
+    vz = nz;
+    lastTouchDist = dist;
+    applyView();
+  }
+}, { passive: false });
+
+world.addEventListener('touchend', () => { panning = false; });
+
+world.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const d = e.deltaY > 0 ? 0.92 : 1.08;
+  const nz = Math.max(0.3, Math.min(3, vz * d));
+  const r = world.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  vx = mx - (mx - vx) * (nz / vz);
+  vy = my - (my - vy) * (nz / vz);
+  vz = nz;
+  applyView();
+}, { passive: false });
+
+function applyView() {
+  viewport.setAttribute('transform', `translate(${vx},${vy}) scale(${vz})`);
+}
+
+function fitView() {
+  if (!tree) return;
+  requestAnimationFrame(() => {
+    const bbox = nodesG.getBBox();
+    if (!bbox.width) return;
+    const pad = 60;
+    const cw = world.offsetWidth, ch = world.offsetHeight;
+    vz = Math.min(cw / (bbox.width + pad * 2), ch / (bbox.height + pad * 2), 1.2);
+    vz = Math.max(0.3, vz);
+    vx = (cw - bbox.width * vz) / 2 - bbox.x * vz;
+    vy = (ch - bbox.height * vz) / 2 - bbox.y * vz;
+    applyView();
   });
 }
 
-// ---- Color ----
-function pickColor(c, el) {
-  color = c;
-  document.querySelectorAll('.dot').forEach(d => d.classList.remove('on'));
-  if (el) el.classList.add('on');
-  const n = N.find(x => x.id === sel);
-  if (n) { n.color = c; save(); draw(); }
+function scrollToNode(id) {
+  const node = findNode(tree, id);
+  if (!node) return;
+  requestAnimationFrame(() => {
+    const cx = world.offsetWidth / 2;
+    const cy = world.offsetHeight / 2;
+    vx = cx - (node._x + node._w / 2) * vz;
+    vy = cy - (node._y + node._h / 2) * vz;
+    applyView();
+  });
 }
 
 // ---- Keyboard ----
-world.addEventListener('keydown', (e) => {
-  if (editing) return;
+document.addEventListener('keydown', (e) => {
+  // If editing, let the input handler deal with it
+  if (document.getElementById('edit-overlay').style.display === 'block') return;
 
   if (e.key === 'Tab') {
-    e.preventDefault();
-    e.stopPropagation();
-    addChild();
+    e.preventDefault(); e.stopPropagation();
+    doAddChild();
   } else if (e.key === 'Enter') {
     e.preventDefault();
-    addSibling();
+    doAddSibling();
   } else if (e.key === 'Delete' || e.key === 'Backspace') {
     e.preventDefault();
-    delNode();
+    doDelete();
   } else if (e.key === 'F2' || e.key === ' ') {
     e.preventDefault();
     if (sel) editNode(sel);
@@ -448,121 +570,73 @@ world.addEventListener('keydown', (e) => {
   } else if (e.key === 'y' && (e.ctrlKey || e.metaKey)) {
     e.preventDefault(); doRedo();
   } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-    e.preventDefault(); saveFile();
+    e.preventDefault(); doSave();
   } else if (e.key.startsWith('Arrow')) {
-    e.preventDefault(); nav(e.key);
+    e.preventDefault(); navigate(e.key);
   }
 }, true);
 
-// Also capture Tab at document level to prevent browser from stealing it
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Tab' && !editing) {
-    e.preventDefault();
+function navigate(key) {
+  if (!sel) { sel = tree?.id; render(); return; }
+
+  const node = findNode(tree, sel);
+  if (!node) return;
+
+  if (key === 'ArrowRight') {
+    if (node.children.length) { sel = node.children[0].id; render(); }
+  } else if (key === 'ArrowLeft') {
+    const parent = findParent(tree, sel, null);
+    if (parent) { sel = parent.id; render(); }
+  } else if (key === 'ArrowUp' || key === 'ArrowDown') {
+    const parent = findParent(tree, sel, null);
+    if (!parent) return;
+    const idx = parent.children.findIndex(c => c.id === sel);
+    if (key === 'ArrowUp' && idx > 0) { sel = parent.children[idx - 1].id; render(); }
+    if (key === 'ArrowDown' && idx < parent.children.length - 1) { sel = parent.children[idx + 1].id; render(); }
   }
-}, true);
-
-function nav(k) {
-  const c = N.find(x => x.id === sel);
-  if (!c) { sel = N[0]?.id; draw(); return; }
-
-  if (k === 'ArrowLeft' && c.pid) { sel = c.pid; draw(); }
-  else if (k === 'ArrowRight') {
-    const kids = N.filter(x => x.pid === c.id);
-    if (kids.length) { sel = kids[0].id; draw(); }
-  } else if (k === 'ArrowUp' || k === 'ArrowDown') {
-    if (!c.pid) return;
-    const sibs = N.filter(x => x.pid === c.pid);
-    const i = sibs.findIndex(x => x.id === c.id);
-    if (k === 'ArrowUp' && i > 0) { sel = sibs[i-1].id; draw(); }
-    if (k === 'ArrowDown' && i < sibs.length - 1) { sel = sibs[i+1].id; draw(); }
-  }
-}
-
-// ---- Fit View ----
-function fitView() {
-  if (!N.length) return;
-  requestAnimationFrame(() => {
-    let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
-    N.forEach(n => {
-      const el = nodesEl.querySelector(`[data-id="${n.id}"]`);
-      const w = el ? el.offsetWidth : 120, h = el ? el.offsetHeight : 36;
-      x1 = Math.min(x1, n.x); y1 = Math.min(y1, n.y);
-      x2 = Math.max(x2, n.x + w); y2 = Math.max(y2, n.y + h);
-    });
-    const cw = world.offsetWidth, ch = world.offsetHeight;
-    const bw = x2 - x1 + 120, bh = y2 - y1 + 120;
-    zm = Math.min(cw / bw, ch / bh, 1.2);
-    zm = Math.max(0.3, zm);
-    px = (cw - bw * zm) / 2 - x1 * zm + 60 * zm;
-    py = (ch - bh * zm) / 2 - y1 * zm + 60 * zm;
-    updateTransform(); drawLines();
-    document.getElementById('zlbl').textContent = Math.round(zm * 100) + '%';
-  });
 }
 
 // ---- File ops ----
-function saveFile() {
-  const b = new Blob([JSON.stringify({ N, nid }, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(b);
-  a.download = 'mindmap.json';
-  a.click(); URL.revokeObjectURL(a.href);
+function doSave() {
+  const b = new Blob([JSON.stringify({ tree, nextId }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b);
+  a.download = 'mindmap.json'; a.click(); URL.revokeObjectURL(a.href);
   toast('Saved!');
 }
 
-function loadFile(e) {
+function doLoad(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = (ev) => {
     try {
       const d = JSON.parse(ev.target.result);
-      N = d.N || []; nid = d.nid || 1; sel = null;
-      save(); draw(); fitView(); toast('Loaded!');
-    } catch(er) { toast('Bad file'); }
+      tree = d.tree; nextId = d.nextId; sel = tree.id;
+      pushUndo(); render(); fitView(); toast('Loaded!');
+    } catch(er) { toast('Invalid file'); }
   };
-  r.readAsText(f);
-  e.target.value = '';
+  r.readAsText(f); e.target.value = '';
 }
 
-function newMap() {
-  if (!confirm('Start fresh?')) return;
-  localStorage.removeItem('mm');
-  undo = []; redo_ = [];
-  fresh();
-  toast('New map');
+function doNew() {
+  if (!confirm('Start a new mind map?')) return;
+  localStorage.removeItem('mindmap2');
+  undoStack = []; redoStack = [];
+  freshMap(); toast('New map');
 }
 
 // ---- Helpers ----
-function isLight(hex) {
-  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 160;
-}
-
 function toast(m) {
   const t = document.getElementById('toast');
   t.textContent = m; t.classList.add('on');
   setTimeout(() => t.classList.remove('on'), 1500);
 }
 
-function hideHint() { const h = document.getElementById('hint'); if (h) h.remove(); }
-
-function showHelp() {
-  alert(
-    'Shortcuts:\n\n' +
-    'Tab → Add child\n' +
-    'Enter → Add sibling\n' +
-    'Delete → Remove node\n' +
-    'Double-click / Space → Edit text\n' +
-    'Arrow keys → Navigate\n' +
-    'Ctrl+Z / Ctrl+Y → Undo / Redo\n' +
-    'Ctrl+S → Save file\n' +
-    'Scroll → Zoom\n' +
-    'Drag background → Pan\n' +
-    'Drag node → Move'
-  );
+function hideHint() {
+  const h = document.getElementById('hint');
+  if (h) h.style.display = 'none';
 }
 
-// Focus world so keyboard works immediately
+// ---- Start ----
 world.focus();
 init();
 </script>
