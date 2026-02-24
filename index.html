@@ -3,912 +3,567 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MindMap - Free Mind Mapping Tool</title>
+<title>MindMap</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0f0f1a;
+  overflow: hidden;
+  color: #fff;
+}
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    overflow: hidden;
-    background: #1a1a2e;
-    color: #e0e0e0;
-    user-select: none;
-  }
+/* Toolbar */
+#bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 44px;
+  background: #1a1a2e; border-bottom: 1px solid #2a2a4a;
+  display: flex; align-items: center; padding: 0 12px; gap: 6px; z-index: 100;
+}
+#bar .title { font-weight: 700; font-size: 16px; color: #ff6b8a; margin-right: 12px; }
+.tb {
+  background: #2a2a4a; border: none; color: #ccc; padding: 5px 12px;
+  border-radius: 6px; cursor: pointer; font-size: 12px;
+}
+.tb:hover { background: #3a3a5a; color: #fff; }
+.tb.red { color: #ff6b8a; }
+.tb.red:hover { background: #ff6b8a; color: #fff; }
+.spacer { flex: 1; }
+.dot {
+  width: 18px; height: 18px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: border-color 0.15s;
+}
+.dot.on { border-color: #fff; }
+.sep { width: 1px; height: 20px; background: #2a2a4a; margin: 0 4px; }
 
-  #toolbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 48px;
-    background: #16213e;
-    border-bottom: 1px solid #0f3460;
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    z-index: 100;
-    gap: 8px;
-  }
+/* Canvas area */
+#world {
+  position: fixed; top: 44px; left: 0; right: 0; bottom: 0;
+  cursor: grab; outline: none;
+}
+#world.dragging { cursor: grabbing; }
 
-  #toolbar .logo {
-    font-weight: 700;
-    font-size: 18px;
-    color: #e94560;
-    margin-right: 16px;
-    letter-spacing: -0.5px;
-  }
+/* Line canvas */
+#lines {
+  position: absolute; top: 0; left: 0; pointer-events: none;
+}
 
-  .btn {
-    background: #0f3460;
-    border: 1px solid #1a4a8a;
-    color: #c0d0e0;
-    padding: 6px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    transition: all 0.15s;
-  }
+/* Nodes layer */
+#nodes {
+  position: absolute; top: 0; left: 0; transform-origin: 0 0;
+}
 
-  .btn:hover { background: #1a4a8a; color: #fff; }
-  .btn.danger { border-color: #e94560; color: #e94560; }
-  .btn.danger:hover { background: #e94560; color: #fff; }
+/* Node */
+.n {
+  position: absolute; padding: 8px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 500; text-align: center;
+  cursor: pointer; white-space: nowrap; min-width: 80px;
+  transition: box-shadow 0.1s;
+  user-select: none;
+}
+.n:hover { filter: brightness(1.15); }
+.n.sel { box-shadow: 0 0 0 2.5px #fff; }
+.n.root { font-size: 16px; font-weight: 700; padding: 10px 22px; border-radius: 14px; }
 
-  .separator {
-    width: 1px;
-    height: 24px;
-    background: #0f3460;
-    margin: 0 4px;
-  }
+/* + button on hover */
+.n .plus {
+  position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #ff6b8a; color: #fff; border: 2px solid #0f0f1a;
+  font-size: 14px; line-height: 14px; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+}
+.n:hover .plus { display: flex; }
 
-  .color-dot {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: transform 0.15s;
-  }
+/* Edit input */
+.n input {
+  background: transparent; border: none; color: inherit; font: inherit;
+  text-align: center; outline: none; width: 100%; min-width: 60px;
+}
 
-  .color-dot:hover { transform: scale(1.2); }
-  .color-dot.active { border-color: #fff; }
+/* Zoom label */
+#zlbl {
+  position: fixed; bottom: 10px; right: 12px;
+  font-size: 11px; color: #555; z-index: 50;
+}
 
-  #canvas-container {
-    position: fixed;
-    top: 48px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    overflow: hidden;
-    cursor: grab;
-  }
+/* Toast */
+#toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px);
+  background: #1a1a2e; border: 1px solid #2a2a4a;
+  padding: 8px 20px; border-radius: 8px; font-size: 12px; color: #aaa;
+  transition: transform 0.25s; z-index: 150;
+}
+#toast.on { transform: translateX(-50%) translateY(0); }
 
-  #canvas-container.grabbing { cursor: grabbing; }
-
-  #canvas {
-    position: absolute;
-    transform-origin: 0 0;
-  }
-
-  svg.connections {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    overflow: visible;
-  }
-
-  .node {
-    position: absolute;
-    min-width: 120px;
-    max-width: 300px;
-    padding: 10px 18px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    transition: box-shadow 0.15s, transform 0.1s;
-    word-wrap: break-word;
-  }
-
-  .node:hover { transform: scale(1.03); }
-  .node.selected { box-shadow: 0 0 0 3px #e94560, 0 4px 20px rgba(233,69,96,0.3) !important; }
-  .node.root { font-size: 18px; font-weight: 700; min-width: 160px; padding: 14px 24px; }
-
-  .node .edit-input {
-    background: transparent;
-    border: none;
-    color: inherit;
-    font: inherit;
-    text-align: center;
-    width: 100%;
-    outline: none;
-    min-width: 80px;
-  }
-
-  .node .add-child-btn {
-    position: absolute;
-    right: -12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #e94560;
-    color: white;
-    border: 2px solid #1a1a2e;
-    font-size: 16px;
-    line-height: 18px;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .node:hover .add-child-btn { display: flex; }
-
-  /* Help modal */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .modal-overlay.hidden { display: none; }
-
-  .modal {
-    background: #16213e;
-    border: 1px solid #0f3460;
-    border-radius: 16px;
-    padding: 32px;
-    max-width: 480px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-  }
-
-  .modal h2 { color: #e94560; margin-bottom: 16px; }
-  .modal p { line-height: 1.7; margin-bottom: 8px; color: #a0b0c0; font-size: 14px; }
-  .modal kbd {
-    background: #0f3460;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    border: 1px solid #1a4a8a;
-    color: #fff;
-  }
-
-  .modal .close-btn {
-    margin-top: 20px;
-    width: 100%;
-    background: #e94560;
-    color: #fff;
-    padding: 10px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-  }
-
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: #16213e;
-    border: 1px solid #0f3460;
-    padding: 10px 24px;
-    border-radius: 10px;
-    font-size: 13px;
-    color: #c0d0e0;
-    transition: transform 0.3s;
-    z-index: 150;
-  }
-
-  .toast.show { transform: translateX(-50%) translateY(0); }
-
-  /* Zoom indicator */
-  #zoom-level {
-    position: fixed;
-    bottom: 16px;
-    right: 16px;
-    background: #16213e;
-    border: 1px solid #0f3460;
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    color: #607080;
-    z-index: 100;
-  }
+/* Hint on first load */
+#hint {
+  position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+  font-size: 12px; color: #444; z-index: 50; text-align: center;
+}
 </style>
 </head>
 <body>
 
-<div id="toolbar">
-  <span class="logo">MindMap</span>
-  <button class="btn" onclick="addChildToSelected()" title="Add child node">+ Add Node</button>
-  <button class="btn" onclick="addSiblingToSelected()" title="Add sibling node">+ Sibling</button>
-  <button class="btn danger" onclick="deleteSelected()" title="Delete selected node">Delete</button>
-  <div class="separator"></div>
-  <div class="color-dot active" style="background:#e94560" onclick="setColor('#e94560',this)"></div>
-  <div class="color-dot" style="background:#0f3460" onclick="setColor('#0f3460',this)"></div>
-  <div class="color-dot" style="background:#7b2d8e" onclick="setColor('#7b2d8e',this)"></div>
-  <div class="color-dot" style="background:#1b998b" onclick="setColor('#1b998b',this)"></div>
-  <div class="color-dot" style="background:#f4a261" onclick="setColor('#f4a261',this)"></div>
-  <div class="separator"></div>
-  <button class="btn" onclick="fitToScreen()">Fit View</button>
-  <button class="btn" onclick="exportJSON()">Save</button>
-  <button class="btn" onclick="document.getElementById('import-file').click()">Load</button>
-  <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
-  <button class="btn" onclick="exportPNG()">Export PNG</button>
-  <button class="btn" onclick="clearAll()">New</button>
-  <div style="flex:1"></div>
-  <button class="btn" onclick="toggleHelp()">? Help</button>
+<div id="bar">
+  <span class="title">MindMap</span>
+  <button class="tb" onclick="addChild()">+ Child</button>
+  <button class="tb" onclick="addSibling()">+ Sibling</button>
+  <button class="tb red" onclick="delNode()">Delete</button>
+  <div class="sep"></div>
+  <div class="dot on" style="background:#ff6b8a" onclick="pickColor('#ff6b8a',this)"></div>
+  <div class="dot" style="background:#4a9eff" onclick="pickColor('#4a9eff',this)"></div>
+  <div class="dot" style="background:#a855f7" onclick="pickColor('#a855f7',this)"></div>
+  <div class="dot" style="background:#22c55e" onclick="pickColor('#22c55e',this)"></div>
+  <div class="dot" style="background:#f59e0b" onclick="pickColor('#f59e0b',this)"></div>
+  <div class="sep"></div>
+  <button class="tb" onclick="fitView()">Fit</button>
+  <button class="tb" onclick="saveFile()">Save</button>
+  <button class="tb" onclick="document.getElementById('lf').click()">Load</button>
+  <input type="file" id="lf" accept=".json" style="display:none" onchange="loadFile(event)">
+  <button class="tb" onclick="newMap()">New</button>
+  <div class="spacer"></div>
+  <button class="tb" onclick="showHelp()">?</button>
 </div>
 
-<div id="canvas-container">
-  <div id="canvas">
-    <svg class="connections" id="svg-connections"></svg>
-  </div>
+<div id="world" tabindex="0">
+  <canvas id="lines"></canvas>
+  <div id="nodes"></div>
 </div>
 
-<div id="zoom-level">100%</div>
-
-<div class="toast" id="toast"></div>
-
-<div class="modal-overlay hidden" id="help-modal" onclick="if(event.target===this)toggleHelp()">
-  <div class="modal">
-    <h2>Keyboard Shortcuts</h2>
-    <p><kbd>Tab</kbd> &mdash; Add child node</p>
-    <p><kbd>Enter</kbd> &mdash; Add sibling node</p>
-    <p><kbd>Delete</kbd> / <kbd>Backspace</kbd> &mdash; Delete selected node</p>
-    <p><kbd>F2</kbd> or double-click &mdash; Edit node text</p>
-    <p><kbd>Arrow keys</kbd> &mdash; Navigate between nodes</p>
-    <p><kbd>Ctrl + S</kbd> &mdash; Save mind map</p>
-    <p><kbd>Ctrl + Z</kbd> &mdash; Undo</p>
-    <p><kbd>Ctrl + Y</kbd> &mdash; Redo</p>
-    <p><kbd>Scroll wheel</kbd> &mdash; Zoom in/out</p>
-    <p><kbd>Click + drag</kbd> on background &mdash; Pan</p>
-    <p><kbd>Click + drag</kbd> on node &mdash; Move node</p>
-    <p style="margin-top: 12px; color: #e94560;">Tip: Click the + button on a node to quickly add children!</p>
-    <button class="close-btn" onclick="toggleHelp()">Got it!</button>
-  </div>
-</div>
+<div id="zlbl">100%</div>
+<div id="toast"></div>
+<div id="hint">Click a node, then press <b>Tab</b> to add children &middot; <b>Enter</b> for siblings &middot; Double-click to edit</div>
 
 <script>
-// ===== STATE =====
-let nodes = [];
-let nextId = 1;
-let selectedId = null;
-let currentColor = '#e94560';
-let undoStack = [];
-let redoStack = [];
+// State
+let N = []; // nodes: {id, text, x, y, pid, color, root}
+let nid = 1, sel = null, color = '#ff6b8a';
+let undo = [], redo_ = [];
 
-// Canvas pan/zoom
-let panX = 0, panY = 0, zoom = 1;
-let isPanning = false, panStartX, panStartY;
-let isDragging = false, dragNodeId = null, dragOffsetX, dragOffsetY;
+// Pan/zoom
+let px = 0, py = 0, zm = 1;
+let panning = false, psx, psy;
+let dragging = false, did = null, dox, doy;
+let editing = false;
 
-const canvas = document.getElementById('canvas');
-const container = document.getElementById('canvas-container');
-const svgEl = document.getElementById('svg-connections');
+const world = document.getElementById('world');
+const nodesEl = document.getElementById('nodes');
+const lineCanvas = document.getElementById('lines');
+const ctx = lineCanvas.getContext('2d');
 
-// ===== NODE COLORS =====
-const themes = {
-  '#e94560': { bg: 'linear-gradient(135deg, #e94560, #c23152)', text: '#fff', shadow: 'rgba(233,69,96,0.3)' },
-  '#0f3460': { bg: 'linear-gradient(135deg, #1a4a8a, #0f3460)', text: '#c0d8f0', shadow: 'rgba(15,52,96,0.4)' },
-  '#7b2d8e': { bg: 'linear-gradient(135deg, #9b3daf, #7b2d8e)', text: '#e8d0f0', shadow: 'rgba(123,45,142,0.3)' },
-  '#1b998b': { bg: 'linear-gradient(135deg, #22b8a6, #1b998b)', text: '#d0f5f0', shadow: 'rgba(27,153,139,0.3)' },
-  '#f4a261': { bg: 'linear-gradient(135deg, #f4a261, #e07a2f)', text: '#3a2010', shadow: 'rgba(244,162,97,0.3)' },
-};
-
-// ===== INIT =====
+// ---- Init ----
 function init() {
-  const saved = localStorage.getItem('mindmap-data');
-  if (saved) {
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  const s = localStorage.getItem('mm');
+  if (s) {
     try {
-      const data = JSON.parse(saved);
-      nodes = data.nodes || [];
-      nextId = data.nextId || 1;
-      if (nodes.length > 0) {
-        render();
-        fitToScreen();
-        return;
-      }
+      const d = JSON.parse(s);
+      N = d.N || []; nid = d.nid || 1;
+      if (N.length) { save(); draw(); fitView(); return; }
     } catch(e) {}
   }
-  createDefaultMap();
+  fresh();
 }
 
-function createDefaultMap() {
-  nodes = [];
-  nextId = 1;
-  const root = createNode('Central Idea', window.innerWidth / 2 - 80, (window.innerHeight - 48) / 2 - 25, null, true);
-  root.color = '#e94560';
-  selectedId = root.id;
-  saveState();
-  render();
-  fitToScreen();
+function fresh() {
+  N = []; nid = 1; sel = null;
+  const cx = 2000, cy = 2000;
+  N.push({ id: nid++, text: 'My Ideas', x: cx, y: cy, pid: null, color: '#ff6b8a', root: true });
+  sel = 1;
+  save(); draw(); fitView();
 }
 
-function createNode(text, x, y, parentId, isRoot) {
-  const node = {
-    id: nextId++,
-    text: text,
-    x: x,
-    y: y,
-    parentId: parentId,
-    color: currentColor,
-    isRoot: isRoot || false,
-  };
-  nodes.push(node);
-  return node;
+function resizeCanvas() {
+  lineCanvas.width = world.offsetWidth;
+  lineCanvas.height = world.offsetHeight;
+  drawLines();
 }
 
-// ===== UNDO / REDO =====
-function saveState() {
-  undoStack.push(JSON.stringify({ nodes, nextId }));
-  if (undoStack.length > 50) undoStack.shift();
-  redoStack = [];
-  autoSave();
+// ---- Save/Undo ----
+function save() {
+  undo.push(JSON.stringify({ N, nid }));
+  if (undo.length > 40) undo.shift();
+  redo_ = [];
+  localStorage.setItem('mm', JSON.stringify({ N, nid }));
 }
 
-function undo() {
-  if (undoStack.length < 2) return;
-  redoStack.push(undoStack.pop());
-  const state = JSON.parse(undoStack[undoStack.length - 1]);
-  nodes = state.nodes;
-  nextId = state.nextId;
-  selectedId = null;
-  render();
-  showToast('Undo');
+function doUndo() {
+  if (undo.length < 2) return;
+  redo_.push(undo.pop());
+  const d = JSON.parse(undo[undo.length - 1]);
+  N = d.N; nid = d.nid; sel = null; draw(); toast('Undo');
 }
 
-function redo() {
-  if (redoStack.length === 0) return;
-  const state = JSON.parse(redoStack.pop());
-  undoStack.push(JSON.stringify(state));
-  nodes = state.nodes;
-  nextId = state.nextId;
-  selectedId = null;
-  render();
-  showToast('Redo');
+function doRedo() {
+  if (!redo_.length) return;
+  const d = JSON.parse(redo_.pop());
+  undo.push(JSON.stringify(d));
+  N = d.N; nid = d.nid; sel = null; draw(); toast('Redo');
 }
 
-// ===== RENDER =====
-function render() {
-  // Remove old nodes
-  canvas.querySelectorAll('.node').forEach(el => el.remove());
+// ---- Draw ----
+function draw() {
+  // Clear DOM nodes
+  nodesEl.innerHTML = '';
 
-  // Draw nodes
-  nodes.forEach(node => {
-    const div = document.createElement('div');
-    div.className = 'node' + (node.isRoot ? ' root' : '') + (node.id === selectedId ? ' selected' : '');
-    div.dataset.id = node.id;
-    div.style.left = node.x + 'px';
-    div.style.top = node.y + 'px';
+  N.forEach(n => {
+    const d = document.createElement('div');
+    d.className = 'n' + (n.root ? ' root' : '') + (n.id === sel ? ' sel' : '');
+    d.dataset.id = n.id;
+    d.style.left = n.x + 'px';
+    d.style.top = n.y + 'px';
+    d.style.background = n.color;
+    d.style.color = isLight(n.color) ? '#1a1a2e' : '#fff';
+    d.textContent = n.text;
 
-    const theme = themes[node.color] || themes['#0f3460'];
-    div.style.background = theme.bg;
-    div.style.color = theme.text;
-    div.style.boxShadow = `0 4px 16px ${theme.shadow}`;
+    // Plus button
+    const p = document.createElement('button');
+    p.className = 'plus';
+    p.textContent = '+';
+    p.onmousedown = (e) => { e.stopPropagation(); sel = n.id; addChild(); };
+    d.appendChild(p);
 
-    div.textContent = node.text;
+    d.onmousedown = (e) => nodeDown(e, n.id);
+    d.ondblclick = (e) => { e.stopPropagation(); editNode(n.id); };
 
-    // Add child button
-    const addBtn = document.createElement('button');
-    addBtn.className = 'add-child-btn';
-    addBtn.innerHTML = '+';
-    addBtn.onclick = (e) => { e.stopPropagation(); selectNode(node.id); addChildToSelected(); };
-    div.appendChild(addBtn);
-
-    // Events
-    div.onmousedown = (e) => onNodeMouseDown(e, node.id);
-    div.ondblclick = (e) => { e.stopPropagation(); startEdit(node.id); };
-
-    canvas.appendChild(div);
+    nodesEl.appendChild(d);
   });
-
-  drawConnections();
-}
-
-function drawConnections() {
-  // Clear SVG
-  svgEl.innerHTML = '';
-
-  nodes.forEach(node => {
-    if (!node.parentId) return;
-    const parent = nodes.find(n => n.id === node.parentId);
-    if (!parent) return;
-
-    const pEl = canvas.querySelector(`[data-id="${parent.id}"]`);
-    const cEl = canvas.querySelector(`[data-id="${node.id}"]`);
-    if (!pEl || !cEl) return;
-
-    const px = parent.x + pEl.offsetWidth / 2;
-    const py = parent.y + pEl.offsetHeight / 2;
-    const cx = node.x + cEl.offsetWidth / 2;
-    const cy = node.y + cEl.offsetHeight / 2;
-
-    // Curved bezier connection
-    const midX = (px + cx) / 2;
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    const d = `M ${px} ${py} C ${midX} ${py}, ${midX} ${cy}, ${cx} ${cy}`;
-    path.setAttribute('d', d);
-    path.setAttribute('fill', 'none');
-
-    const pTheme = themes[parent.color] || themes['#0f3460'];
-    path.setAttribute('stroke', parent.color);
-    path.setAttribute('stroke-width', '2.5');
-    path.setAttribute('stroke-opacity', '0.5');
-    svgEl.appendChild(path);
-  });
-}
-
-// ===== SELECTION =====
-function selectNode(id) {
-  selectedId = id;
-  render();
-}
-
-function getSelected() {
-  return nodes.find(n => n.id === selectedId);
-}
-
-// ===== ADD / DELETE =====
-function addChildToSelected() {
-  const parent = getSelected();
-  if (!parent) { showToast('Select a node first'); return; }
-
-  // Position child to the right
-  const children = nodes.filter(n => n.parentId === parent.id);
-  const offsetY = children.length * 70 - (children.length > 0 ? 35 * (children.length - 1) : 0);
-
-  const el = canvas.querySelector(`[data-id="${parent.id}"]`);
-  const pw = el ? el.offsetWidth : 140;
-
-  const child = createNode(
-    'New idea',
-    parent.x + pw + 80,
-    parent.y + children.length * 70 - (children.length * 35),
-    parent.id
-  );
-  child.color = parent.color;
-
-  selectedId = child.id;
-  saveState();
-  render();
-
-  // Auto edit the new node
-  setTimeout(() => startEdit(child.id), 50);
-}
-
-function addSiblingToSelected() {
-  const current = getSelected();
-  if (!current || !current.parentId) { showToast('Select a non-root node'); return; }
-
-  const parent = nodes.find(n => n.id === current.parentId);
-  if (!parent) return;
-
-  const sibling = createNode('New idea', current.x, current.y + 70, parent.id);
-  sibling.color = current.color;
-
-  selectedId = sibling.id;
-  saveState();
-  render();
-  setTimeout(() => startEdit(sibling.id), 50);
-}
-
-function deleteSelected() {
-  const node = getSelected();
-  if (!node) return;
-  if (node.isRoot) { showToast("Can't delete root node"); return; }
-
-  // Delete node and all descendants
-  const toDelete = new Set();
-  function collectDescendants(id) {
-    toDelete.add(id);
-    nodes.filter(n => n.parentId === id).forEach(c => collectDescendants(c.id));
-  }
-  collectDescendants(node.id);
-
-  nodes = nodes.filter(n => !toDelete.has(n.id));
-  selectedId = node.parentId;
-  saveState();
-  render();
-}
-
-// ===== EDITING =====
-function startEdit(id) {
-  const node = nodes.find(n => n.id === id);
-  if (!node) return;
-
-  const el = canvas.querySelector(`[data-id="${id}"]`);
-  if (!el) return;
-
-  // Replace text with input
-  const input = document.createElement('input');
-  input.className = 'edit-input';
-  input.value = node.text;
-  input.style.color = el.style.color;
-
-  el.textContent = '';
-  el.appendChild(input);
-  input.focus();
-  input.select();
-
-  const finish = () => {
-    const newText = input.value.trim() || node.text;
-    node.text = newText;
-    saveState();
-    render();
-  };
-
-  input.onblur = finish;
-  input.onkeydown = (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
-    if (e.key === 'Escape') { input.value = node.text; input.blur(); }
-    e.stopPropagation();
-  };
-}
-
-// ===== COLOR =====
-function setColor(color, dotEl) {
-  currentColor = color;
-  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-  if (dotEl) dotEl.classList.add('active');
-
-  const node = getSelected();
-  if (node) {
-    node.color = color;
-    saveState();
-    render();
-  }
-}
-
-// ===== PAN & ZOOM =====
-container.onmousedown = (e) => {
-  if (e.target === container || e.target === canvas || e.target === svgEl) {
-    isPanning = true;
-    panStartX = e.clientX - panX;
-    panStartY = e.clientY - panY;
-    container.classList.add('grabbing');
-    selectedId = null;
-    render();
-  }
-};
-
-window.onmousemove = (e) => {
-  if (isPanning) {
-    panX = e.clientX - panStartX;
-    panY = e.clientY - panStartY;
-    updateTransform();
-  }
-  if (isDragging && dragNodeId) {
-    const node = nodes.find(n => n.id === dragNodeId);
-    if (node) {
-      node.x = (e.clientX - panX) / zoom - dragOffsetX;
-      node.y = (e.clientY - panY - 48) / zoom - dragOffsetY;
-      const el = canvas.querySelector(`[data-id="${dragNodeId}"]`);
-      if (el) {
-        el.style.left = node.x + 'px';
-        el.style.top = node.y + 'px';
-      }
-      drawConnections();
-    }
-  }
-};
-
-window.onmouseup = () => {
-  if (isPanning) {
-    isPanning = false;
-    container.classList.remove('grabbing');
-  }
-  if (isDragging) {
-    isDragging = false;
-    dragNodeId = null;
-    saveState();
-  }
-};
-
-function onNodeMouseDown(e, id) {
-  e.stopPropagation();
-  selectNode(id);
-
-  // Start drag
-  const node = nodes.find(n => n.id === id);
-  if (node) {
-    isDragging = true;
-    dragNodeId = id;
-    const el = canvas.querySelector(`[data-id="${id}"]`);
-    dragOffsetX = (e.clientX - panX) / zoom - node.x;
-    dragOffsetY = (e.clientY - panY - 48) / zoom - node.y;
-  }
-}
-
-container.onwheel = (e) => {
-  e.preventDefault();
-  const delta = e.deltaY > 0 ? 0.9 : 1.1;
-  const newZoom = Math.max(0.2, Math.min(3, zoom * delta));
-
-  // Zoom towards mouse
-  const rect = container.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-
-  panX = mx - (mx - panX) * (newZoom / zoom);
-  panY = my - (my - panY) * (newZoom / zoom);
-  zoom = newZoom;
 
   updateTransform();
-  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
-};
-
-function updateTransform() {
-  canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+  drawLines();
 }
 
-function fitToScreen() {
-  if (nodes.length === 0) return;
+function drawLines() {
+  ctx.clearRect(0, 0, lineCanvas.width, lineCanvas.height);
+  ctx.lineCap = 'round';
 
-  // Calculate bounding box after rendering
-  requestAnimationFrame(() => {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    nodes.forEach(n => {
-      const el = canvas.querySelector(`[data-id="${n.id}"]`);
-      const w = el ? el.offsetWidth : 140;
-      const h = el ? el.offsetHeight : 40;
-      minX = Math.min(minX, n.x);
-      minY = Math.min(minY, n.y);
-      maxX = Math.max(maxX, n.x + w);
-      maxY = Math.max(maxY, n.y + h);
-    });
+  N.forEach(n => {
+    if (!n.pid) return;
+    const p = N.find(x => x.id === n.pid);
+    if (!p) return;
 
-    const cw = container.offsetWidth;
-    const ch = container.offsetHeight;
-    const bw = maxX - minX + 100;
-    const bh = maxY - minY + 100;
+    const pe = nodesEl.querySelector(`[data-id="${p.id}"]`);
+    const ce = nodesEl.querySelector(`[data-id="${n.id}"]`);
+    if (!pe || !ce) return;
 
-    zoom = Math.min(cw / bw, ch / bh, 1.5);
-    zoom = Math.max(0.3, Math.min(zoom, 1.5));
+    // Get positions in screen space
+    const x1 = (p.x + pe.offsetWidth / 2) * zm + px;
+    const y1 = (p.y + pe.offsetHeight / 2) * zm + py;
+    const x2 = (n.x + ce.offsetWidth / 2) * zm + px;
+    const y2 = (n.y + ce.offsetHeight / 2) * zm + py;
 
-    panX = (cw - bw * zoom) / 2 - minX * zoom + 50 * zoom;
-    panY = (ch - bh * zoom) / 2 - minY * zoom + 50 * zoom;
+    const mx = (x1 + x2) / 2;
 
-    updateTransform();
-    document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.bezierCurveTo(mx, y1, mx, y2, x2, y2);
+    ctx.strokeStyle = p.color;
+    ctx.globalAlpha = 0.45;
+    ctx.lineWidth = 2.5 * zm;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   });
 }
 
-// ===== KEYBOARD =====
-document.onkeydown = (e) => {
-  // Skip if editing
-  if (document.activeElement.tagName === 'INPUT') return;
+function updateTransform() {
+  nodesEl.style.transform = `translate(${px}px, ${py}px) scale(${zm})`;
+}
+
+// ---- Pan & Zoom ----
+world.addEventListener('mousedown', (e) => {
+  if (e.target === world || e.target === lineCanvas) {
+    panning = true;
+    psx = e.clientX - px;
+    psy = e.clientY - py;
+    world.classList.add('dragging');
+    sel = null;
+    draw();
+    world.focus();
+  }
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (panning) {
+    px = e.clientX - psx;
+    py = e.clientY - psy;
+    updateTransform();
+    drawLines();
+  }
+  if (dragging && did) {
+    const n = N.find(x => x.id === did);
+    if (n) {
+      n.x = (e.clientX - px) / zm - dox;
+      n.y = (e.clientY - 44 - py) / zm - doy;
+      const el = nodesEl.querySelector(`[data-id="${did}"]`);
+      if (el) { el.style.left = n.x + 'px'; el.style.top = n.y + 'px'; }
+      drawLines();
+    }
+  }
+});
+
+window.addEventListener('mouseup', () => {
+  if (panning) { panning = false; world.classList.remove('dragging'); }
+  if (dragging) { dragging = false; did = null; save(); }
+});
+
+world.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const d = e.deltaY > 0 ? 0.9 : 1.1;
+  const nz = Math.max(0.2, Math.min(3, zm * d));
+  const r = world.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  px = mx - (mx - px) * (nz / zm);
+  py = my - (my - py) * (nz / zm);
+  zm = nz;
+  updateTransform();
+  drawLines();
+  document.getElementById('zlbl').textContent = Math.round(zm * 100) + '%';
+}, { passive: false });
+
+function nodeDown(e, id) {
+  e.stopPropagation();
+  sel = id;
+  draw();
+  world.focus();
+
+  const n = N.find(x => x.id === id);
+  if (n) {
+    dragging = true; did = id;
+    dox = (e.clientX - px) / zm - n.x;
+    doy = (e.clientY - 44 - py) / zm - n.y;
+  }
+}
+
+// ---- Add / Delete ----
+function addChild() {
+  const p = N.find(x => x.id === sel);
+  if (!p) { toast('Select a node first'); return; }
+
+  const kids = N.filter(x => x.pid === p.id);
+  const el = nodesEl.querySelector(`[data-id="${p.id}"]`);
+  const pw = el ? el.offsetWidth : 120;
+
+  const child = {
+    id: nid++, text: 'New idea',
+    x: p.x + pw + 60,
+    y: p.y + kids.length * 60 - kids.length * 25,
+    pid: p.id, color: p.color, root: false
+  };
+  N.push(child);
+  sel = child.id;
+  save(); draw();
+  setTimeout(() => editNode(child.id), 30);
+  hideHint();
+}
+
+function addSibling() {
+  const c = N.find(x => x.id === sel);
+  if (!c || !c.pid) { toast('Select a non-root node'); return; }
+
+  const sib = {
+    id: nid++, text: 'New idea',
+    x: c.x, y: c.y + 60,
+    pid: c.pid, color: c.color, root: false
+  };
+  N.push(sib);
+  sel = sib.id;
+  save(); draw();
+  setTimeout(() => editNode(sib.id), 30);
+}
+
+function delNode() {
+  const n = N.find(x => x.id === sel);
+  if (!n) return;
+  if (n.root) { toast("Can't delete root"); return; }
+
+  const del = new Set();
+  function collect(id) { del.add(id); N.filter(x => x.pid === id).forEach(c => collect(c.id)); }
+  collect(n.id);
+  sel = n.pid;
+  N = N.filter(x => !del.has(x.id));
+  save(); draw();
+}
+
+// ---- Edit ----
+function editNode(id) {
+  const n = N.find(x => x.id === id);
+  if (!n) return;
+  const el = nodesEl.querySelector(`[data-id="${id}"]`);
+  if (!el) return;
+
+  editing = true;
+  const inp = document.createElement('input');
+  inp.value = n.text;
+  inp.style.color = el.style.color;
+  el.textContent = '';
+  el.appendChild(inp);
+  inp.focus();
+  inp.select();
+
+  const done = () => {
+    editing = false;
+    n.text = inp.value.trim() || n.text;
+    save(); draw();
+    world.focus();
+  };
+
+  inp.addEventListener('blur', done);
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+    if (e.key === 'Escape') { inp.value = n.text; inp.blur(); }
+    e.stopPropagation();
+  });
+}
+
+// ---- Color ----
+function pickColor(c, el) {
+  color = c;
+  document.querySelectorAll('.dot').forEach(d => d.classList.remove('on'));
+  if (el) el.classList.add('on');
+  const n = N.find(x => x.id === sel);
+  if (n) { n.color = c; save(); draw(); }
+}
+
+// ---- Keyboard ----
+world.addEventListener('keydown', (e) => {
+  if (editing) return;
 
   if (e.key === 'Tab') {
     e.preventDefault();
-    addChildToSelected();
+    e.stopPropagation();
+    addChild();
   } else if (e.key === 'Enter') {
     e.preventDefault();
-    addSiblingToSelected();
+    addSibling();
   } else if (e.key === 'Delete' || e.key === 'Backspace') {
     e.preventDefault();
-    deleteSelected();
-  } else if (e.key === 'F2') {
+    delNode();
+  } else if (e.key === 'F2' || e.key === ' ') {
     e.preventDefault();
-    if (selectedId) startEdit(selectedId);
+    if (sel) editNode(sel);
   } else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
-    e.preventDefault();
-    undo();
+    e.preventDefault(); doUndo();
   } else if (e.key === 'y' && (e.ctrlKey || e.metaKey)) {
-    e.preventDefault();
-    redo();
+    e.preventDefault(); doRedo();
   } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-    e.preventDefault();
-    exportJSON();
-  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-    e.preventDefault();
-    navigateNodes(e.key);
+    e.preventDefault(); saveFile();
+  } else if (e.key.startsWith('Arrow')) {
+    e.preventDefault(); nav(e.key);
   }
-};
+}, true);
 
-function navigateNodes(key) {
-  const current = getSelected();
-  if (!current) {
-    const root = nodes.find(n => n.isRoot);
-    if (root) selectNode(root.id);
-    return;
+// Also capture Tab at document level to prevent browser from stealing it
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab' && !editing) {
+    e.preventDefault();
   }
+}, true);
 
-  if (key === 'ArrowLeft' && current.parentId) {
-    selectNode(current.parentId);
-  } else if (key === 'ArrowRight') {
-    const children = nodes.filter(n => n.parentId === current.id);
-    if (children.length > 0) selectNode(children[0].id);
-  } else if (key === 'ArrowUp' || key === 'ArrowDown') {
-    if (!current.parentId) return;
-    const siblings = nodes.filter(n => n.parentId === current.parentId);
-    const idx = siblings.findIndex(n => n.id === current.id);
-    if (key === 'ArrowUp' && idx > 0) selectNode(siblings[idx - 1].id);
-    if (key === 'ArrowDown' && idx < siblings.length - 1) selectNode(siblings[idx + 1].id);
+function nav(k) {
+  const c = N.find(x => x.id === sel);
+  if (!c) { sel = N[0]?.id; draw(); return; }
+
+  if (k === 'ArrowLeft' && c.pid) { sel = c.pid; draw(); }
+  else if (k === 'ArrowRight') {
+    const kids = N.filter(x => x.pid === c.id);
+    if (kids.length) { sel = kids[0].id; draw(); }
+  } else if (k === 'ArrowUp' || k === 'ArrowDown') {
+    if (!c.pid) return;
+    const sibs = N.filter(x => x.pid === c.pid);
+    const i = sibs.findIndex(x => x.id === c.id);
+    if (k === 'ArrowUp' && i > 0) { sel = sibs[i-1].id; draw(); }
+    if (k === 'ArrowDown' && i < sibs.length - 1) { sel = sibs[i+1].id; draw(); }
   }
 }
 
-// ===== SAVE / LOAD =====
-function autoSave() {
-  localStorage.setItem('mindmap-data', JSON.stringify({ nodes, nextId }));
+// ---- Fit View ----
+function fitView() {
+  if (!N.length) return;
+  requestAnimationFrame(() => {
+    let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+    N.forEach(n => {
+      const el = nodesEl.querySelector(`[data-id="${n.id}"]`);
+      const w = el ? el.offsetWidth : 120, h = el ? el.offsetHeight : 36;
+      x1 = Math.min(x1, n.x); y1 = Math.min(y1, n.y);
+      x2 = Math.max(x2, n.x + w); y2 = Math.max(y2, n.y + h);
+    });
+    const cw = world.offsetWidth, ch = world.offsetHeight;
+    const bw = x2 - x1 + 120, bh = y2 - y1 + 120;
+    zm = Math.min(cw / bw, ch / bh, 1.2);
+    zm = Math.max(0.3, zm);
+    px = (cw - bw * zm) / 2 - x1 * zm + 60 * zm;
+    py = (ch - bh * zm) / 2 - y1 * zm + 60 * zm;
+    updateTransform(); drawLines();
+    document.getElementById('zlbl').textContent = Math.round(zm * 100) + '%';
+  });
 }
 
-function exportJSON() {
-  const data = JSON.stringify({ nodes, nextId }, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
+// ---- File ops ----
+function saveFile() {
+  const b = new Blob([JSON.stringify({ N, nid }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
-  a.href = url;
+  a.href = URL.createObjectURL(b);
   a.download = 'mindmap.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Mind map saved!');
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Saved!');
 }
 
-function importJSON(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
+function loadFile(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = (ev) => {
     try {
-      const data = JSON.parse(e.target.result);
-      nodes = data.nodes || [];
-      nextId = data.nextId || 1;
-      selectedId = null;
-      saveState();
-      render();
-      fitToScreen();
-      showToast('Mind map loaded!');
-    } catch(err) {
-      showToast('Invalid file');
-    }
+      const d = JSON.parse(ev.target.result);
+      N = d.N || []; nid = d.nid || 1; sel = null;
+      save(); draw(); fitView(); toast('Loaded!');
+    } catch(er) { toast('Bad file'); }
   };
-  reader.readAsText(file);
-  event.target.value = '';
+  r.readAsText(f);
+  e.target.value = '';
 }
 
-function exportPNG() {
-  // Use html2canvas-like approach with SVG foreignObject
-  const minX = Math.min(...nodes.map(n => n.x)) - 40;
-  const minY = Math.min(...nodes.map(n => n.y)) - 40;
-  const maxX = Math.max(...nodes.map(n => {
-    const el = canvas.querySelector(`[data-id="${n.id}"]`);
-    return n.x + (el ? el.offsetWidth : 140);
-  })) + 40;
-  const maxY = Math.max(...nodes.map(n => {
-    const el = canvas.querySelector(`[data-id="${n.id}"]`);
-    return n.y + (el ? el.offsetHeight : 40);
-  })) + 40;
-
-  const w = maxX - minX;
-  const h = maxY - minY;
-
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('width', w);
-  svg.setAttribute('height', h);
-  svg.setAttribute('xmlns', svgNS);
-
-  // Background
-  const bg = document.createElementNS(svgNS, 'rect');
-  bg.setAttribute('width', w);
-  bg.setAttribute('height', h);
-  bg.setAttribute('fill', '#1a1a2e');
-  svg.appendChild(bg);
-
-  // Connections
-  nodes.forEach(node => {
-    if (!node.parentId) return;
-    const parent = nodes.find(n => n.id === node.parentId);
-    if (!parent) return;
-    const pEl = canvas.querySelector(`[data-id="${parent.id}"]`);
-    const cEl = canvas.querySelector(`[data-id="${node.id}"]`);
-    if (!pEl || !cEl) return;
-
-    const px = parent.x + pEl.offsetWidth / 2 - minX;
-    const py = parent.y + pEl.offsetHeight / 2 - minY;
-    const cx = node.x + cEl.offsetWidth / 2 - minX;
-    const cy = node.y + cEl.offsetHeight / 2 - minY;
-    const midXp = (px + cx) / 2;
-
-    const path = document.createElementNS(svgNS, 'path');
-    path.setAttribute('d', `M ${px} ${py} C ${midXp} ${py}, ${midXp} ${cy}, ${cx} ${cy}`);
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', parent.color);
-    path.setAttribute('stroke-width', '2.5');
-    path.setAttribute('stroke-opacity', '0.5');
-    svg.appendChild(path);
-  });
-
-  // Nodes as rounded rects + text
-  nodes.forEach(node => {
-    const el = canvas.querySelector(`[data-id="${node.id}"]`);
-    if (!el) return;
-    const nw = el.offsetWidth;
-    const nh = el.offsetHeight;
-    const nx = node.x - minX;
-    const ny = node.y - minY;
-
-    const rect = document.createElementNS(svgNS, 'rect');
-    rect.setAttribute('x', nx);
-    rect.setAttribute('y', ny);
-    rect.setAttribute('width', nw);
-    rect.setAttribute('height', nh);
-    rect.setAttribute('rx', 12);
-    rect.setAttribute('fill', node.color);
-    rect.setAttribute('opacity', '0.9');
-    svg.appendChild(rect);
-
-    const text = document.createElementNS(svgNS, 'text');
-    text.setAttribute('x', nx + nw / 2);
-    text.setAttribute('y', ny + nh / 2 + 5);
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('fill', '#fff');
-    text.setAttribute('font-family', '-apple-system, sans-serif');
-    text.setAttribute('font-size', node.isRoot ? '18' : '14');
-    text.setAttribute('font-weight', node.isRoot ? '700' : '500');
-    text.textContent = node.text;
-    svg.appendChild(text);
-  });
-
-  const svgData = new XMLSerializer().serializeToString(svg);
-  const canvasEl = document.createElement('canvas');
-  canvasEl.width = w * 2;
-  canvasEl.height = h * 2;
-  const ctx = canvasEl.getContext('2d');
-  ctx.scale(2, 2);
-
-  const img = new Image();
-  img.onload = () => {
-    ctx.drawImage(img, 0, 0);
-    const a = document.createElement('a');
-    a.download = 'mindmap.png';
-    a.href = canvasEl.toDataURL('image/png');
-    a.click();
-    showToast('PNG exported!');
-  };
-  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+function newMap() {
+  if (!confirm('Start fresh?')) return;
+  localStorage.removeItem('mm');
+  undo = []; redo_ = [];
+  fresh();
+  toast('New map');
 }
 
-function clearAll() {
-  if (!confirm('Start a new mind map? This will clear the current one.')) return;
-  localStorage.removeItem('mindmap-data');
-  undoStack = [];
-  redoStack = [];
-  createDefaultMap();
-  showToast('New mind map created');
+// ---- Helpers ----
+function isLight(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 160;
 }
 
-// ===== TOAST =====
-function showToast(msg) {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2000);
+function toast(m) {
+  const t = document.getElementById('toast');
+  t.textContent = m; t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 1500);
 }
 
-// ===== HELP =====
-function toggleHelp() {
-  document.getElementById('help-modal').classList.toggle('hidden');
+function hideHint() { const h = document.getElementById('hint'); if (h) h.remove(); }
+
+function showHelp() {
+  alert(
+    'Shortcuts:\n\n' +
+    'Tab → Add child\n' +
+    'Enter → Add sibling\n' +
+    'Delete → Remove node\n' +
+    'Double-click / Space → Edit text\n' +
+    'Arrow keys → Navigate\n' +
+    'Ctrl+Z / Ctrl+Y → Undo / Redo\n' +
+    'Ctrl+S → Save file\n' +
+    'Scroll → Zoom\n' +
+    'Drag background → Pan\n' +
+    'Drag node → Move'
+  );
 }
 
-// ===== START =====
+// Focus world so keyboard works immediately
+world.focus();
 init();
 </script>
 </body>
