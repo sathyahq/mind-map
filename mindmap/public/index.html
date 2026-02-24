@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mind Map</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div id="sidebar-header">
+      <h1>Mind Maps</h1>
+      <button id="btn-new-map" title="New Map">+</button>
+    </div>
+    <ul id="map-list"></ul>
+  </aside>
+
+  <!-- Main area -->
+  <main id="main">
+    <!-- Breadcrumb -->
+    <div id="breadcrumb-bar">
+      <div id="breadcrumbs"></div>
+    </div>
+
+    <!-- Canvas -->
+    <div id="cy-container">
+      <div id="cy"></div>
+      <div id="empty-state">
+        <p>Select a map from the sidebar or create a new one.</p>
+      </div>
+    </div>
+
+    <!-- Inline text editor overlay -->
+    <input type="text" id="node-editor" autocomplete="off" spellcheck="false">
+
+    <!-- Context menu -->
+    <div id="context-menu">
+      <div class="ctx-item" data-action="link-to-map">Link to Map...</div>
+      <div class="ctx-item" data-action="remove-link">Remove Link</div>
+      <div class="ctx-item" data-action="create-linked-map">Create Linked Map</div>
+    </div>
+
+    <!-- Map picker modal -->
+    <div id="map-picker-overlay">
+      <div id="map-picker">
+        <h3>Link to Map</h3>
+        <ul id="map-picker-list"></ul>
+        <button id="map-picker-cancel">Cancel</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+  <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+  <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

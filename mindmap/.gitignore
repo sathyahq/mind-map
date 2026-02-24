@@ -1,0 +1,4 @@
+node_modules/
+mindmap.db
+mindmap.db-wal
+mindmap.db-shm
