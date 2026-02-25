@@ -359,7 +359,12 @@ function drawNode(node, parent, isRoot) {
 // ---- Select ----
 function selectNode(id) {
   sel = id;
-  render();
+  // Don't re-render (which destroys elements and breaks dblclick).
+  // Just toggle the selected class directly.
+  nodesG.querySelectorAll('.node').forEach(g => {
+    const nid = parseInt(g.getAttribute('data-id'));
+    g.classList.toggle('selected', nid === id);
+  });
   world.focus();
 }
 
