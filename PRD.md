@@ -1,78 +1,158 @@
-# PRD: Shopify App Store Copy Scraper & Competitor Analyzer
+# PRD: Shopify App Store Competitor Copy Analyzer
 
 ## Purpose
-A web app for Shopify app developers to scrape competitor app store listings and get AI-powered copy/positioning analysis — so they can improve their own listing and get more installs.
+A web app for Shopify app developers to scrape competitor app store listings,
+audit every section of their copy and media, and get a focused AI gap report —
+so they know exactly what to fix on their own listing to get more installs.
 
 ## Users
 Shopify app developers who want to:
-- Study how competitors write their titles, descriptions, and feature bullets
-- Identify positioning gaps and keyword opportunities
-- Get actionable suggestions to improve their own listing copy
+- Audit how competitors write each section of their listing (title, description, features)
+- See at a glance where they are weak vs the field (scorecard)
+- Identify specific keywords and copy patterns they're missing
+- Know whether their media assets (screenshots, video, demo store) are competitive
 
 ## Core Workflow
-1. User sets "Your App" URL once (persisted across sessions)
+1. User sets "Your App" URL once — persisted between sessions
 2. User pastes 1–50 competitor URLs
-3. App scrapes all listings, extracts structured data
-4. App shows results in a table + downloadable CSV
-5. App runs AI analysis comparing your app vs competitors
-6. User downloads CSV and reads the analysis to improve their copy
+3. App scrapes all listings and extracts structured data + media signals
+4. App shows a quick scorecard (your app vs all competitors in one table)
+5. App runs section-by-section analysis: title → description → features → media
+6. App produces a focused gap report: top 3–5 things to fix, with rewrite suggestions
+7. User downloads CSV of raw data for their own analysis
+
+---
+
+## What to Extract Per App
+
+For every URL scraped (your app + competitors), extract:
+
+| Field | Description |
+|---|---|
+| `app_name` | Display name shown on the listing |
+| `url_handle` | The slug from the URL (e.g. `delta-retail-barcode`) |
+| `tagline` | Marketing headline shown below the app name |
+| `description` | Main description paragraphs (combined) |
+| `features` | Bullet-point feature list (semicolon-separated in CSV) |
+| `feature_count` | Number of feature bullets |
+| `rating` | Average star rating (e.g. 4.8) |
+| `review_count` | Total number of reviews |
+| `pricing` | Pricing tier(s) visible on the page |
+| `screenshot_count` | Number of screenshots in the image carousel |
+| `screenshot_alt_texts` | Alt text of each screenshot (semicolon-separated) |
+| `has_demo_video` | Boolean — does the listing have a demo video? |
+| `has_demo_store` | Boolean — does the listing link to a demo store? |
+| `url` | Full URL scraped |
 
 ---
 
 ## Features
 
 ### F1: "Your App" Input (persisted)
-- Separate input field at the top labeled "Your App"
-- Accepts one Shopify App Store URL (e.g. https://apps.shopify.com/my-app)
-- Saved to a local JSON file (`my_app.json`) so it survives between sessions
+- Dedicated input at the top, clearly labeled "Your App"
+- Accepts one Shopify App Store URL
+- On scrape: save data to `my_app.json` so it survives browser refresh and redeployment
+- If saved data exists on load: show a summary card (name, tagline, rating, screenshot count)
 - "Clear saved app" button to reset
-- Scraped data displayed in a highlighted card/section
 
 ### F2: Competitor URL Input
-- Text area for pasting competitor URLs (one per line)
-- Validates each URL (must contain `apps.shopify.com`)
+- Text area for pasting competitor URLs, one per line
+- Validates each line (must contain `apps.shopify.com`)
 - Accepts 1–50 URLs per batch
+- Shows per-URL scraping progress with a status bar
 
 ### F3: Scraping Engine
-- For each URL, fetch the page HTML and send it to **Gemini Flash 2.5** to extract:
-  - `app_name`: The app's display name
-  - `title`: The marketing headline/tagline shown below the app name
-  - `description`: The main description paragraph(s)
-  - `features`: Bullet-point feature list (semicolon-separated in CSV)
-  - `rating`: Average star rating (e.g. 4.8)
-  - `review_count`: Total number of reviews (e.g. 523)
-  - `pricing`: Pricing info if visible
-- **Why Gemini instead of CSS selectors**: Shopify changes their DOM frequently. CSS selectors break. Sending raw HTML to an LLM for structured extraction is more resilient.
-- Fallback: If Gemini extraction fails, fall back to BeautifulSoup with known selectors (`#adp-hero h1`, `#app-details`, `#reviews-link`, JSON-LD)
-- Retry logic: On HTTP failures, retry up to 3 times with exponential backoff (2s, 4s, 8s) and rotate User-Agent strings
-- 2-second polite delay between requests
-- Progress bar in UI showing scraping status
+- **Primary**: Send raw HTML to Gemini Flash 2.5 with a structured JSON extraction prompt
+  - More resilient than CSS selectors — Shopify updates their DOM regularly
+  - Extracts all fields in the table above in a single LLM call per page
+- **Fallback**: If Gemini fails, use BeautifulSoup with known selectors:
+  - `#adp-hero h1` → app name
+  - `#adp-hero h2` → tagline
+  - `#app-details` paragraphs → description
+  - `#app-details > ul > li` → features
+  - `#adp-hero dd > span.tw-text-fg-secondary` → rating
+  - `#reviews-link` → review count
+  - Count `<img>` in carousel → screenshot count
+  - Look for `<video>` or YouTube embed → has_demo_video
+  - Media signals (screenshot count, alt texts, video, demo store) should be extracted by BeautifulSoup regardless — do not skip these even when Gemini handles the copy fields
+- **Retry**: On HTTP failure, retry up to 3× with exponential backoff (2s, 4s, 8s), rotating User-Agent strings each attempt
+- **Delay**: 2-second pause between requests
 
-### F4: Results Table
-- Display all scraped data in a pandas DataFrame table
-- Columns: app_name, title, description, features, rating, review_count, pricing, url
-- Your app's row highlighted or shown separately at the top
+### F4: Quick Scorecard (Tab 1)
+A single compact table — your app in column 1, each competitor in subsequent columns.
 
-### F5: CSV Download
-- Download button that exports all results as a CSV file
+Rows:
+- App Name
+- URL Handle (is it keyword-rich? flag if it contains no product keywords)
+- Tagline (truncated to 60 chars)
+- Description length (word count)
+- Feature count
+- Rating ⭐
+- Review count
+- Screenshots 📸 (count)
+- Demo video 🎬 (✓ / ✗)
+- Demo store 🏪 (✓ / ✗)
+- Pricing
+
+No color-coding needed — the table itself makes gaps obvious.
+
+### F5: Section-by-Section Analysis (Tabs 2–5)
+
+Each tab covers one section of the listing. All tabs are generated from Gemini output after scraping.
+
+**Tab 2 — Title & Tagline**
+- List all taglines scraped (your app + competitors)
+- Keyword frequency: which product/benefit keywords appear most across all taglines?
+- Which taglines are strongest and why (clarity, specificity, benefit-first)?
+- Is your tagline keyword-rich, benefit-focused, or vague?
+- Flag: does your tagline mention the core use case?
+
+**Tab 3 — Description**
+- Word count comparison across all apps
+- Key topics/themes present in competitor descriptions but absent from yours
+- Readability notes: does it lead with a problem, then a solution?
+- Keyword coverage: top 10 product-category keywords found across all descriptions — which do you use, which do you miss?
+
+**Tab 4 — Features**
+- Feature count per app (table)
+- All unique feature topics mentioned across all apps (clustered by theme)
+- Features competitors mention that you don't
+- Features you mention that no one else does (potential differentiators)
+- Are your bullets specific ("Generate UPC, EAN, Code 128 barcodes") or vague ("Easy barcode generation")?
+
+**Tab 5 — Media Audit**
+- Screenshot count per app
+- Screenshot alt text quality: are alt texts keyword-rich or empty/generic?
+- Video presence: who has a demo video, who doesn't?
+- Demo store presence: who has one?
+- Note on URL handle: is it keyword-rich? (only actionable at launch, so flag it as FYI)
+
+### F6: Gap Report — AI Output (Tab 6)
+This is the only Gemini-generated narrative output. Keep it tight and actionable.
+
+Format (markdown):
+```
+## Your Top 3–5 Gaps vs Competitors
+
+### 1. [Gap title]
+What competitors do: ...
+What you do: ...
+Suggested fix: [specific rewrite or action]
+
+### 2. [Gap title]
+...
+```
+
+- Only include gaps where the fix is specific and actionable (not "improve your copy")
+- Maximum 5 gaps — quality over quantity
+- Runs automatically after competitors are scraped (if your app data exists)
+- "Re-analyze" button to regenerate
+
+### F7: CSV Download
+- Available on Tab 1 (Scorecard)
+- Exports all raw extracted data for all apps
 - Filename: `shopify_apps_data.csv`
-- Header row: app_name, title, description, features, rating, review_count, pricing, url
-
-### F6: Your App vs Competitors Comparison View
-- Side-by-side table with your app in the first column and competitors alongside
-- Rows: Title, Description (truncated), Feature count, Rating, Review count, Pricing
-- Visual indicators (color/emoji) showing where your app is stronger or weaker
-
-### F7: AI Copy Analysis (Gemini Flash 2.5)
-- After scraping completes, automatically analyze the extracted copy
-- Analysis should cover:
-  - **Positioning summary**: How does your app position itself vs competitors?
-  - **Title/tagline analysis**: Which competitor titles are strongest and why?
-  - **Feature gaps**: Features competitors mention that you don't (and vice versa)
-  - **Keyword opportunities**: Common words/phrases in competitor listings missing from yours
-  - **Copy improvement suggestions**: 3–5 specific, actionable rewrites for your title, description, or feature bullets
-- Displayed in a clean expandable section below the results table
-- Analysis is run once after scraping; a "Re-analyze" button lets user re-run it
+- Columns: app_name, url_handle, tagline, description, features, feature_count, rating, review_count, pricing, screenshot_count, screenshot_alt_texts, has_demo_video, has_demo_store, url
 
 ---
 
@@ -80,48 +160,52 @@ Shopify app developers who want to:
 
 ### Stack (matches existing repo)
 - **Python 3.11+**
-- **Streamlit** — web UI framework
-- **google-generativeai** — Gemini Flash 2.5 API client
-- **requests** + **BeautifulSoup4** + **lxml** — HTTP fetching and fallback HTML parsing
+- **Streamlit** — web UI
+- **google-generativeai** — Gemini Flash 2.5 API
+- **requests** + **BeautifulSoup4** + **lxml** — HTTP fetching + fallback parsing
 - **pandas** — data tables and CSV export
 
 ### File Structure
 ```
-├── app.py                  # Streamlit web UI (main entry point)
-├── scraper.py              # Page fetching + BeautifulSoup fallback extraction
-├── extractor.py            # Gemini-powered structured data extraction from HTML
-├── analyzer.py             # Gemini-powered copy analysis (your app vs competitors)
-├── storage.py              # Persist "Your App" data to my_app.json
-├── requirements.txt        # Dependencies
+├── app.py              # Streamlit UI — main entry point
+├── scraper.py          # Page fetching, retry logic, BeautifulSoup fallback extraction
+├── extractor.py        # Gemini-powered structured data extraction from raw HTML
+├── analyzer.py         # Gemini-powered section analysis + gap report
+├── storage.py          # Persist "Your App" data to my_app.json
+├── requirements.txt
 ├── .streamlit/
-│   └── config.toml         # Streamlit deployment config
+│   └── config.toml
 └── .gitignore
 ```
 
 ### Environment Variables
-- `GEMINI_API_KEY` — Required. Gemini Flash 2.5 API key. The app should check for this on startup and show a clear error if missing.
+- `GEMINI_API_KEY` — Required. Check on startup. Show `st.error` and stop if missing.
 
 ### Key Design Decisions
-- **Gemini for extraction, not just analysis**: Send the raw HTML to Gemini with a structured prompt asking for JSON output. This replaces brittle CSS selectors as the primary extraction method. BeautifulSoup selectors (`#adp-hero`, `#app-details`, `#reviews-link`, JSON-LD) remain as a fallback if the Gemini call fails.
-- **No database**: `my_app.json` flat file for persistence. Simple enough for a single-user tool.
-- **No auth**: This is a personal tool, not multi-tenant.
+- **Gemini extracts, not just analyzes**: One LLM call per page extracts all copy fields as structured JSON. BeautifulSoup is the safety net, not the primary path.
+- **Media signals always via BeautifulSoup**: Screenshot count, alt texts, video/demo store presence are scraped directly from HTML regardless of whether Gemini handles the copy fields — these are structural signals, not text, and LLMs are unnecessary for them.
+- **No database**: `my_app.json` flat file. Single-user tool.
+- **No auth**: Personal tool.
+- **Tabs over scrolling**: Each analysis section is a tab, not a long page. Keeps it scannable.
 
 ---
 
 ## Deployment
-The app should work on any of these with zero changes:
+Works unchanged on:
 - `streamlit run app.py` locally
-- Streamlit Cloud (connect GitHub repo, set GEMINI_API_KEY as a secret)
+- Streamlit Cloud (set `GEMINI_API_KEY` as a secret)
 - Hugging Face Spaces (Streamlit SDK)
-- Any VPS with Python installed
+- Any VPS with Python
 
 ---
 
 ## Validation Test
-After building, test against this URL:
+After building, test with:
 **https://apps.shopify.com/delta-retail-barcode**
 
-Expected extraction should include:
-- Title containing "Generate Barcodes" or "Barcode"
-- Features with items about barcode generation and SKU creation
-- A numeric rating and review count
+Expected:
+- Tagline contains "Barcode" or "SKU"
+- Features include items about barcode generation and SKU creation
+- `screenshot_count` is a number > 0
+- `has_demo_video` is True or False (not N/A)
+- Rating and review_count are numeric
